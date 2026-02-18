@@ -1,0 +1,368 @@
+============================================================
+TIL - TODAY I LEARNED
+Auteur      : Yann Ngateu
+Période     : Janvier 2026 - Février 2026
+Objectif    : Capitaliser les problèmes techniques rencontrés
+============================================================
+
+============================================================
+TIL-001 — Docker Compose sans Dockerfile
+============================================================
+Date        : 2026-01-07
+Projet      : Smart Valuator / Phoenix
+Catégorie   : Docker
+
+PROBLEME
+Erreur lors d’un docker compose build sans Dockerfile.
+
+CAUSE
+Les images officielles sont déjà prêtes.
+Aucun Dockerfile n’est nécessaire.
+
+SOLUTION
+docker compose up -d
+
+LECON
+Docker Compose peut fonctionner sans Dockerfile.
+
+
+============================================================
+TIL-002 — Erreur 500 Spring Boot à cause de réponse IA mal formée
+============================================================
+Date        : 2026-01-09
+Projet      : Smart Valuator API
+Catégorie   : Spring Boot / IA
+
+PROBLEME
+Erreur 500 lors du parsing d’une réponse IA.
+
+CAUSE
+La réponse contenait un JSON encapsulé dans des balises markdown.
+
+SOLUTION
+Nettoyer la réponse avant parsing
+ou imposer un format strict côté prompt.
+
+LECON
+Une API ne doit jamais faire confiance à une source externe.
+
+
+============================================================
+TIL-003 — Commit Git mal nommé
+============================================================
+Date        : 2026-01-10
+Projet      : Tous
+Catégorie   : Git
+
+PROBLEME
+Historique Git peu lisible.
+
+CAUSE
+Messages de commit vagues ou incohérents.
+
+SOLUTION
+Utiliser une convention :
+feat, fix, refactor, chore, test.
+
+LECON
+Un bon commit explique le pourquoi, pas seulement le quoi.
+
+
+============================================================
+TIL-004 — Push Git refusé (non-fast-forward)
+============================================================
+Date        : 2026-01-11
+Projet      : Tous
+Catégorie   : Git / GitHub
+
+PROBLEME
+git push refusé avec non-fast-forward.
+
+CAUSE
+La branche distante contient des commits absents en local.
+
+SOLUTION
+git pull --rebase
+ou
+git pull puis résoudre les conflits.
+
+LECON
+Toujours synchroniser avant de pousser.
+
+
+============================================================
+TIL-005 — Git pull déclenche un conflit
+============================================================
+Date        : 2026-01-13
+Projet      : Tous
+Catégorie   : Git
+
+PROBLEME
+Conflit lors d’un git pull.
+
+CAUSE
+Deux modifications concurrentes sur les mêmes lignes.
+
+SOLUTION
+Résoudre manuellement les conflits
+puis :
+git add .
+git commit
+
+LECON
+Les conflits sont normaux dans un projet vivant.
+
+
+============================================================
+TIL-006 — Mauvaise branche utilisée pour un commit
+============================================================
+Date        : 2026-01-15
+Projet      : Tous
+Catégorie   : Git
+
+PROBLEME
+Commit réalisé sur la mauvaise branche.
+
+CAUSE
+Absence de vérification avant commit.
+
+SOLUTION
+git checkout bonne-branche
+git cherry-pick <commit>
+
+LECON
+Toujours vérifier sa branche avant de coder.
+
+
+============================================================
+TIL-007 — Authentification GitHub refusée
+============================================================
+Date        : 2026-01-16
+Projet      : Tous
+Catégorie   : GitHub / Sécurité
+
+PROBLEME
+GitHub refuse le mot de passe.
+
+CAUSE
+Suppression de l’authentification par mot de passe.
+
+SOLUTION
+Utiliser un Personal Access Token
+ou configurer une clé SSH.
+
+LECON
+Les outils évoluent, la sécurité aussi.
+
+
+============================================================
+TIL-008 — Problème CORS entre Angular et Spring Boot
+============================================================
+Date        : 2026-01-18
+Projet      : Smart Valuator
+Catégorie   : Web / Sécurité
+
+PROBLEME
+Requêtes bloquées par le navigateur.
+
+CAUSE
+Origines différentes non autorisées.
+
+SOLUTION
+Configurer CORS côté backend.
+
+LECON
+Le navigateur applique une sécurité stricte par défaut.
+
+
+============================================================
+TIL-009 — Angular bloqué sur un loader infini
+============================================================
+Date        : 2026-01-20
+Projet      : Smart Valuator Frontend
+Catégorie   : Angular / HTTP
+
+PROBLEME
+Chargement infini de l’interface.
+
+CAUSE
+Observable non terminé ou erreur non gérée.
+
+SOLUTION
+Toujours utiliser catchError et finalize.
+
+LECON
+Un loader doit toujours avoir une sortie.
+
+
+============================================================
+TIL-010 — Git ignore les fichiers modifiés
+============================================================
+Date        : 2026-01-22
+Projet      : Tous
+Catégorie   : Git
+
+PROBLEME
+git status n’affiche pas certains fichiers.
+
+CAUSE
+Fichiers présents dans .gitignore.
+
+SOLUTION
+Vérifier .gitignore
+ou forcer avec :
+git add -f
+
+LECON
+.gitignore est plus puissant qu’on ne le pense.
+
+
+============================================================
+TIL-011 — Git reset mal utilisé
+============================================================
+Date        : 2026-01-24
+Projet      : Tous
+Catégorie   : Git
+
+PROBLEME
+Perte apparente de commits.
+
+CAUSE
+Utilisation de git reset --hard.
+
+SOLUTION
+Utiliser :
+git reflog
+pour récupérer les commits.
+
+LECON
+Git garde presque toujours une trace.
+
+
+============================================================
+TIL-012 — pgAdmin redémarre en boucle
+============================================================
+Date        : 2026-01-28
+Projet      : Phoenix Exchange
+Catégorie   : Docker / PostgreSQL
+
+PROBLEME
+pgAdmin reste en restarting.
+
+CAUSE
+Email invalide dans la configuration.
+
+SOLUTION
+Utiliser un email valide
+et supprimer les volumes Docker.
+
+LECON
+Une configuration invalide peut bloquer tout un service.
+
+
+============================================================
+TIL-013 — Connexion PostgreSQL impossible depuis pgAdmin
+============================================================
+Date        : 2026-02-01
+Projet      : Phoenix Exchange
+Catégorie   : Docker / Réseau
+
+PROBLEME
+Connexion refusée avec localhost.
+
+CAUSE
+localhost pointe vers le conteneur.
+
+SOLUTION
+Utiliser le nom du service Docker.
+
+LECON
+Docker fournit son propre réseau interne.
+
+
+============================================================
+TIL-014 — Scripts SQL ignorés par PostgreSQL
+============================================================
+Date        : 2026-02-04
+Projet      : Phoenix Exchange
+Catégorie   : Docker / PostgreSQL
+
+PROBLEME
+Les scripts SQL ne s’exécutent pas.
+
+CAUSE
+Ils sont lancés uniquement au premier démarrage.
+
+SOLUTION
+Supprimer le volume PostgreSQL.
+
+LECON
+L’initialisation de base est one-shot.
+
+
+============================================================
+TIL-015 — JWT invalide ou expiré
+============================================================
+Date        : 2026-02-07
+Projet      : Phoenix Exchange
+Catégorie   : Sécurité / Auth
+
+PROBLEME
+Toutes les requêtes retournent 403.
+
+CAUSE
+Token expiré ou mal injecté.
+
+SOLUTION
+Vérifier le header Authorization
+et utiliser un interceptor.
+
+LECON
+Les erreurs 403 cachent souvent un problème de token.
+
+
+============================================================
+TIL-016 — Docker : No space left on device
+============================================================
+Date        : 2026-02-11
+Projet      : Système
+Catégorie   : DevOps
+
+PROBLEME
+Impossible de build ou lancer un conteneur.
+
+CAUSE
+Accumulation d’images et volumes inutilisés.
+
+SOLUTION
+docker system prune -a --volumes
+
+LECON
+Docker doit être nettoyé régulièrement.
+
+
+============================================================
+MODELE TIL A COPIER
+============================================================
+
+------------------------------------------------------------
+TIL-XXX — Titre clair du problème
+------------------------------------------------------------
+Date        :
+Projet      :
+Catégorie   :
+
+PROBLEME
+
+CAUSE
+
+SOLUTION
+
+LECON
+------------------------------------------------------------
+
+
+============================================================
+MODELE TIL A COPIER
+============================================================
+...
