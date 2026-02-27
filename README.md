@@ -1,35 +1,26 @@
 # Today I Learned (TIL)
 
-A collection of concise write-ups on small things I learn day to day across various technologies.
+Quick notes on technical problems and solutions I encounter during development.
 
 ## About
 
-This repository serves as a personal knowledge base where I document technical problems, solutions, and lessons learned during my development journey.
+Personal knowledge base documenting issues, fixes, and lessons learned.
 
 - **Author**: Yann Ngateu
 - **Period**: 2025 - 2026
-- **Goal**: Capitalize on technical issues encountered
-- **Format**: Text
 - **Language**: French
 
-## Structure
+## Entry Format
 
-Each entry follows a consistent format:
-- **Problem**: Description of the issue
+- **Problem**: What went wrong
 - **Cause**: Why it happened
 - **Solution**: How to fix it
 - **Lesson**: Key takeaway
 
-## Categories
+## Main Topics
 
-- Docker
-- Spring Boot
-- Angular
-- Git
-- PostgreSQL
-- Security
-- Java
+Docker • Spring Boot • Angular • Git • PostgreSQL • Security • Java
 
-## How to use
+## File
 
-Browse the `src/til.txt` file to see the entries.
+See [`til.md`](til.md) for all entries.
