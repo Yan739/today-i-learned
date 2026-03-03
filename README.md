@@ -19,7 +19,7 @@ Personal knowledge base documenting issues, fixes, and lessons learned.
 
 ## Main Topics
 
-Docker • Spring Boot • Angular • Git • PostgreSQL • Security • Java
+Docker • Spring Boot • Angular • Git • PostgreSQL • Security • Java • Android App
 
 ## File
 

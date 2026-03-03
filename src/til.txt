@@ -889,6 +889,26 @@ LECON
 Ne JAMAIS modifier un script Flyway déjà exécuté en production.
 
 ============================================================
+TIL-037 — Le dossier .idea ne veut pas être ignoré
+============================================================
+Date        : 2026-02-26
+Projet      : RememberthDay
+Catégorie   : Android App
+
+PROBLÈME
+Le dossier .idea ne veut pas être ignoré malgré son ajout dans le fichier .gitignore.
+
+CAUSE
+Le dossier .idea a été ajouté au dépôt avant son ajout dans le .gitignore.
+
+SOLUTION
+Supprimer le dossier du suivi Git (git rm -r --cached .idea), puis commit et push à nouveau.
+Le dossier sera recréé automatiquement par l’IDE, et le .gitignore fonctionnera correctement.
+
+LEÇON
+Toujours configurer correctement le .gitignore avant le premier commit.
+
+============================================================
 MODELE TIL A COPIER
 ============================================================
 
