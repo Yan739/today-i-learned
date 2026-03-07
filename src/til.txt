@@ -909,6 +909,126 @@ LEÇON
 Toujours configurer correctement le .gitignore avant le premier commit.
 
 ============================================================
+TIL-038 — Accès Base de données sur le Main Thread
+============================================================
+Date        : 2026-03-06
+Projet      : RememberthDay
+Catégorie   : Android / Room
+
+PROBLEME
+L'application crash immédiatement au lancement ou lors d'une action avec l'erreur :
+"Cannot access database on the main thread".
+
+CAUSE
+Room interdit par défaut les opérations d'E/S (Input/Output) sur le thread principal pour éviter de figer l'interface utilisateur.
+
+SOLUTION
+Utiliser un exécuteur (`AppDatabase.databaseWriteExecutor.execute(...)`) pour effectuer les opérations DAO en arrière-plan.
+
+LECON
+Toute interaction avec SQLite doit être asynchrone pour garantir la fluidité de l'UI.
+
+
+============================================================
+TIL-039 — ClassCastException entre Button et EditText
+============================================================
+Date        : 2026-03-06
+Projet      : RememberthDay
+Catégorie   : Android / Java
+
+PROBLEME
+Crash de l'application : "AppCompatButton cannot be cast to android.widget.EditText".
+
+CAUSE
+Une variable déclarée comme EditText dans le code Java a été liée via findViewById à un bouton dans le layout XML.
+
+SOLUTION
+Harmoniser les types : si l'ID pointe vers un bouton, la variable Java doit être de type Button ou View (type générique).
+
+LECON
+La correspondance entre les IDs du XML et les types de variables Java doit être rigoureuse.
+
+
+============================================================
+TIL-040 — Perte de données au clic (Race Condition)
+============================================================
+Date        : 2026-03-06
+Projet      : RememberthDay
+Catégorie   : Android / Threading
+
+PROBLEME
+Le nom du contact disparaît ou les données se mélangent lorsqu'on passe d'un contact à un autre dans la liste.
+
+CAUSE
+Une sauvegarde automatique asynchrone tentait de lire le contenu des champs texte au moment précis où l'UI les vidait pour afficher le contact suivant.
+
+SOLUTION
+Capturer les valeurs des champs texte dans des variables locales finales AVANT de lancer le thread de sauvegarde.
+
+LECON
+L'état des vues UI est instable ; il faut figer les données avant de les traiter en arrière-plan.
+
+
+============================================================
+TIL-041 — Échec de mise à jour UI depuis un thread de fond
+============================================================
+Date        : 2026-03-06
+Projet      : RememberthDay
+Catégorie   : Android / UI
+
+PROBLEME
+Les modifications (suppression, chargement) ne sont pas visibles à l'écran ou provoquent un crash intermittent.
+
+CAUSE
+Tentative de modifier des composants de l'interface (Adapter, Toasts, Visibility) depuis un thread secondaire.
+
+SOLUTION
+Encapsuler les appels de mise à jour visuelle dans la méthode runOnUiThread(() -> { ... }).
+
+LECON
+Seul le thread principal est autorisé à toucher à l'interface graphique.
+
+
+============================================================
+TIL-042 — NotificationService : Toast Queue Full
+============================================================
+Date        : 2026-03-06
+Projet      : RememberthDay
+Catégorie   : Android / OS
+
+PROBLEME
+Logcat : "Package has already queued 5 toasts. Not showing more."
+
+CAUSE
+L'application envoie trop de messages Toast à la suite (boucles ou clics rapides), saturant la file d'attente du système Android.
+
+SOLUTION
+Limiter les messages de feedback ou utiliser des Snackbars qui remplacent la notification précédente au lieu de s'empiler.
+
+LECON
+Un feedback utilisateur excessif peut être perçu comme du spam par le système d'exploitation.
+
+
+============================================================
+TIL-043 — Database Inspector : Données non synchronisées
+============================================================
+Date        : 2026-03-06
+Projet      : RememberthDay
+Catégorie   : Android Studio / Debug
+
+PROBLEME
+Les données de test (Mock Data) n'apparaissent pas malgré les modifications du code.
+
+CAUSE
+L'application utilise le fichier de base de données déjà créé lors du premier lancement, ignorant les nouvelles conditions d'insertion.
+
+SOLUTION
+Désinstaller l'application du terminal pour supprimer physiquement le fichier .db et forcer une nouvelle initialisation.
+
+LECON
+Le cycle de vie de la base de données Room persiste au-delà du simple redémarrage de l'application.
+
+============================================================
 MODELE TIL A COPIER
 ============================================================
 
