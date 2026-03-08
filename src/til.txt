@@ -1029,6 +1029,36 @@ LECON
 Le cycle de vie de la base de données Room persiste au-delà du simple redémarrage de l'application.
 
 ============================================================
+TIL-044 — ContactAdapter : Séparation du modèle de données
+============================================================
+Date        : 2026-03-08
+Projet      : RememberthDay
+Catégorie   : Android / Architecture
+
+PROBLEME
+Le ContactAdapter héritait de RecyclerView.Adapter et gérait
+manuellement la liste via setContacts() + notifyDataSetChanged(),
+forçant un re-rendu complet à chaque mise à jour.
+
+CAUSE
+Sans DiffUtil, l'adapter ne peut pas calculer les différences
+entre l'ancienne et la nouvelle liste. Il doit tout recalculer,
+ce qui supprime les animations et dégrade les performances.
+
+SOLUTION
+Migrer vers ListAdapter<Contact, ViewHolder> qui intègre
+DiffUtil nativement via un ItemCallback :
+- areItemsTheSame()    → compare les IDs (même entité ?)
+- areContentsTheSame() → compare les champs (re-rendu utile ?)
+Remplacer setContacts(list) par submitList(list), qui est
+asynchrone et thread-safe.
+
+LECON
+ListAdapter délègue la gestion de la liste et du diff au
+framework. L'adapter ne contient plus qu'une seule
+responsabilité : lier les données à la vue (onBindViewHolder).
+
+============================================================
 MODELE TIL A COPIER
 ============================================================
 
