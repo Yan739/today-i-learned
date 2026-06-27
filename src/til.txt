@@ -1,7 +1,7 @@
 ============================================================
 TIL - TODAY I LEARNED
 Auteur      : Yann Ngateu
-Période     : Janvier 2026 - Février 2026
+Période     : Janvier 2026 - Juin 2026
 Objectif    : Capitaliser les problèmes techniques rencontrés
 ============================================================
 
@@ -1032,7 +1032,7 @@ Le cycle de vie de la base de données Room persiste au-delà du simple redémar
 TIL-044 — ContactAdapter : Séparation du modèle de données
 ============================================================
 Date        : 2026-03-08
-Projet      : RememberthDay
+Projet      : RememberThDay
 Catégorie   : Android / Architecture
 
 PROBLEME
@@ -1059,6 +1059,373 @@ framework. L'adapter ne contient plus qu'une seule
 responsabilité : lier les données à la vue (onBindViewHolder).
 
 ============================================================
+TIL-045 — Date antidatée bloquant toute la sauvegarde du contact
+============================================================
+Date        : 2026-03-23
+Projet      : RememberThDay
+Catégorie   : Android / Logique métier
+
+PROBLEME
+Sélectionner par erreur une date d'envoi dans le passé empêchait
+la sauvegarde de l'INTÉGRALITÉ du contact (nom, téléphone, note,
+message), pas seulement de la programmation.
+
+CAUSE
+La validation de la date était placée au mauvais endroit dans le
+flux de sauvegarde : le `return` conçu pour interrompre la
+programmation interrompait aussi la persistance du reste du contact.
+
+SOLUTION
+Une date invalide déclenche désormais un Toast d'avertissement et
+colore les champs date/heure en rouge semi-transparent (0x33E53935).
+Le flag hasSchedule passe à false, les champs de programmation sont
+vidés, et la sauvegarde du reste du contact se poursuit (message en
+statut CRAFT). Dès qu'une date valide est saisie, les styles par
+défaut sont restaurés.
+
+LECON
+La validation d'un champ secondaire ne doit jamais bloquer la
+persistance des données principales. Isoler les règles de validation
+par périmètre de responsabilité.
+
+============================================================
+TIL-046 — Variable finale requise dans une lambda
+============================================================
+Date        : 2026-03-23
+Projet      : RememberThDay
+Catégorie   : Android / Java
+
+PROBLEME
+Erreur de compilation : "Variable used in lambda expression should
+be final or effectively final".
+
+CAUSE
+Le bloc de validation réassignait les variables hasSchedule,
+scheduledTime, dateStr et timeStr selon la validité de la date.
+Ces variables étaient ensuite capturées dans la lambda passée à
+databaseWriteExecutor.execute(). En Java, une variable capturée par
+une lambda doit être effectivement finale ; toute réassignation
+postérieure l'en empêche.
+
+SOLUTION
+Introduire quatre variables finales juste avant la lambda
+(finalHasSchedule, finalScheduledTime, finalDateStr, finalTimeStr)
+qui capturent la valeur résultante après validation. Toutes les
+références internes à la lambda utilisent ces copies.
+
+LECON
+Une lambda Java fige l'état des variables capturées. Si une valeur
+doit changer avant la capture, on la copie dans une variable finale
+locale au dernier moment.
+
+============================================================
+TIL-047 — Permission SCHEDULE_EXACT_ALARM refusée (Android 13+)
+============================================================
+Date        : 2026-03-23
+Projet      : RememberThDay
+Catégorie   : Android / AlarmManager
+
+PROBLEME
+Sur Android 13+ (API 33+), les alarmes programmées via
+setExactAndAllowWhileIdle() étaient soit ignorées silencieusement,
+soit dégradées en planning imprécis (retards de plusieurs minutes),
+sans aucune indication à l'utilisateur.
+
+CAUSE
+Android 13 a introduit une distinction entre alarmes approximatives
+(autorisées par défaut) et alarmes exactes (permission
+SCHEDULE_EXACT_ALARM refusée par défaut, requérant un consentement
+explicite).
+
+SOLUTION
+Ajouter deux méthodes à SmsSchedulerHelper :
+- canScheduleExact(context) vérifie la présence de la permission.
+- requestExactAlarmPermission(context) ouvre la page système
+  "Alarmes et rappels" de l'application.
+Si la permission manque au moment d'une programmation, un AlertDialog
+propose d'ouvrir les paramètres ou de continuer avec le fallback
+setAndAllowWhileIdle() (envoi garanti, précision moindre).
+
+LECON
+Chaque montée de version Android peut transformer une permission
+implicite en permission explicite. Toujours prévoir un fallback
+gracieux et informer l'utilisateur.
+
+============================================================
+TIL-048 — BroadcastReceiver requiert RECEIVER_EXPORTED (Android 13+)
+============================================================
+Date        : 2026-03-24
+Projet      : RememberThDay
+Catégorie   : Android / Broadcast
+
+PROBLEME
+Crash au registerReceiver() sur Android 13+ : un receiver enregistré
+dynamiquement doit déclarer explicitement s'il est exporté ou non.
+
+CAUSE
+À partir d'Android 13 (API 33+), tout receiver enregistré à
+l'exécution et écoutant des broadcasts non-système doit préciser
+le flag RECEIVER_EXPORTED ou RECEIVER_NOT_EXPORTED, sous peine de
+SecurityException.
+
+SOLUTION
+Passer le flag au registerReceiver :
+```java
+ContextCompat.registerReceiver(context, smsReceiver, filter,
+    ContextCompat.RECEIVER_NOT_EXPORTED);
+```
+Utiliser RECEIVER_NOT_EXPORTED pour un receiver purement interne.
+
+LECON
+La sécurité des composants Android se durcit à chaque version :
+expliciter la portée des receivers est devenu obligatoire.
+
+============================================================
+TIL-049 — SMS long tronqué (limite 160 caractères)
+============================================================
+Date        : 2026-03-24
+Projet      : RememberThDay
+Catégorie   : Android / SmsManager
+
+PROBLEME
+Les messages d'anniversaire dépassant 160 caractères étaient
+tronqués ou non envoyés.
+
+CAUSE
+sendTextMessage() est limité à un seul SMS (160 caractères GSM-7).
+Au-delà, le message doit être découpé en plusieurs parties.
+
+SOLUTION
+Découper le message avec divideMessage() et l'envoyer via
+sendMultipartTextMessage(), de manière asynchrone :
+```java
+ArrayList<String> parts = smsManager.divideMessage(message);
+smsManager.sendMultipartTextMessage(number, null, parts, null, null);
+```
+
+LECON
+Un SMS n'est pas un canal "illimité" : au-delà d'une certaine
+longueur, il faut explicitement gérer le multipart.
+
+============================================================
+TIL-050 — Mutation d'un objet partagé dans une liste
+============================================================
+Date        : 2026-03-27
+Projet      : RememberThDay
+Catégorie   : Android / Immutabilité
+
+PROBLEME
+Lors de la mise à jour d'un cadeau dans GiftListActivity, l'ancienne
+valeur "fuyait" et l'UI affichait des états incohérents.
+
+CAUSE
+Le code modifiait directement (mutait) l'objet Gift déjà présent
+dans la liste au lieu d'en créer une copie. Comme la même référence
+était partagée entre la liste affichée et la couche de données, la
+comparaison DiffUtil ne détectait aucun changement.
+
+SOLUTION
+Créer un nouvel objet Gift (copie immuable) pour chaque mise à jour
+plutôt que de muter l'existant, puis soumettre la nouvelle liste via
+submitList().
+
+LECON
+Avec DiffUtil/ListAdapter, muter un objet existant casse la détection
+de différence. Travailler en immutabilité : produire de nouveaux
+objets plutôt que modifier les anciens.
+
+============================================================
+TIL-051 — Pipe Angular 'number' introuvable (NG8004)
+============================================================
+Date        : 2026-05-23
+Projet      : Phoenix Exchange (phoenix-ui)
+Catégorie   : Angular / Standalone Components
+
+PROBLEME
+Build échoue : "NG8004: No pipe found with name 'number'" sur
+{{ valeur | number:'1.0-0' }} dans plusieurs composants.
+
+CAUSE
+Dans un composant standalone Angular, les pipes ne sont pas
+disponibles globalement comme dans un NgModule. DecimalPipe doit
+être importé explicitement dans le tableau imports du composant.
+
+SOLUTION
+```typescript
+import { DecimalPipe } from '@angular/common';
+
+@Component({
+  imports: [DecimalPipe, /* ... */],
+})
+```
+
+LECON
+Les composants standalone exigent l'import explicite de chaque pipe,
+directive et composant utilisés dans leur template.
+
+============================================================
+TIL-052 — Accès index signature TypeScript (TS4111)
+============================================================
+Date        : 2026-05-23
+Projet      : Phoenix Exchange (phoenix-ui)
+Catégorie   : Angular / TypeScript strict
+
+PROBLEME
+Erreur TS4111 : "Property 'score' comes from an index signature, so
+it must be accessed with ['score']" sur g.controls.score.value.
+
+CAUSE
+En mode strict, une propriété provenant d'une index signature (ici
+les controls d'un FormGroup) ne peut pas être accédée en notation
+pointée ; TypeScript impose la notation crochet pour signaler que la
+clé n'est pas garantie statiquement.
+
+SOLUTION
+```typescript
+// Avant
+const scores = this.itemGroups.map(g => g.controls.score.value);
+// Après
+const scores = this.itemGroups.map(g => g.controls['score'].value);
+```
+
+LECON
+Le mode strict distingue les propriétés déclarées des clés
+dynamiques. La notation crochet documente l'accès à une clé
+non typée statiquement.
+
+============================================================
+TIL-053 — Import inutilisé bloque la propreté du build (NG8113)
+============================================================
+Date        : 2026-05-23
+Projet      : Phoenix Exchange (phoenix-ui)
+Catégorie   : Angular / Lint
+
+PROBLEME
+Warning NG8113 : "RouterLink is not used within the template of
+DepositComponent".
+
+CAUSE
+RouterLink était déclaré dans le tableau imports du composant
+standalone mais n'était jamais utilisé dans le template.
+
+SOLUTION
+Retirer RouterLink des imports du composant. Le warning ne bloque
+pas le build mais signale du code mort à nettoyer.
+
+LECON
+Garder les imports d'un composant standalone strictement alignés sur
+ce que le template utilise réellement : moins de bruit, bundle plus
+propre.
+
+============================================================
+TIL-054 — Classe Application Spring Boot introuvable
+============================================================
+Date        : 2026-04-15
+Projet      : Phoenix Exchange API
+Catégorie   : Spring Boot / Structure projet
+
+PROBLEME
+Erreur au démarrage : la classe principale (ExchangeApplication)
+n'est pas trouvée.
+
+CAUSE
+Décalage entre le package déclaré dans la classe annotée
+@SpringBootApplication et l'emplacement physique du fichier dans
+l'arborescence des dossiers ; Spring ne scanne que le package de la
+classe principale et ses sous-packages.
+
+SOLUTION
+Vérifier que la classe @SpringBootApplication est bien à la racine
+du package de base, et que tous les composants (controllers,
+services, entities) se trouvent dans des sous-packages de celui-ci.
+Aligner la déclaration package sur le chemin réel des dossiers.
+
+LECON
+Spring Boot s'appuie sur le component scanning depuis le package de
+la classe principale : la cohérence package/dossier est structurante.
+
+============================================================
+TIL-055 — Cache compilateur Angular corrompu (TS2305 fantôme)
+============================================================
+Date        : 2026-05-18
+Projet      : employee_app
+Catégorie   : Angular / Build
+
+PROBLEME
+Erreur TS2305 : "Module './models/level.model' has no exported
+member 'Level'" alors que l'export existe bel et bien et que le
+chemin est correct.
+
+CAUSE
+Le dossier de cache du compilateur Angular (.angular) était
+corrompu et servait une version périmée du fichier. Complication
+annexe : PowerShell (Get-Content) et VS Code affichaient des
+contenus différents (cache éditeur).
+
+SOLUTION
+Vider le cache puis relancer :
+```powershell
+Remove-Item -Recurse -Force .angular
+ng serve
+```
+
+LECON
+Devant une erreur Angular qui contredit le code réel, suspecter le
+cache .angular avant de douter du code. C'est devenu le réflexe de
+debug récurrent sur ce projet.
+
+============================================================
+TIL-056 — Classe Angular exportée en minuscule
+============================================================
+Date        : 2026-05-18
+Projet      : employee_app
+Catégorie   : Angular / Conventions
+
+PROBLEME
+L'import de EmployeeComponent dans app.ts échouait : membre
+introuvable.
+
+CAUSE
+La classe exportée dans employee.ts était nommée `employee`
+(minuscule) au lieu de `EmployeeComponent`, ne correspondant pas au
+nom importé.
+
+SOLUTION
+Renommer la classe en EmployeeComponent (PascalCase) et corriger
+l'import dans app.ts.
+
+LECON
+Respecter strictement les conventions de nommage Angular
+(PascalCase pour les classes/composants) évite les erreurs d'import
+silencieuses.
+
+============================================================
+TIL-057 — Commandes Unix indisponibles sous PowerShell
+============================================================
+Date        : 2026-05-18
+Projet      : Tous (environnement Windows)
+Catégorie   : DevOps / Windows
+
+PROBLEME
+La commande `find` (recherche de fichiers façon Unix) ne fonctionne
+pas sous PowerShell Windows.
+
+CAUSE
+PowerShell n'expose pas les utilitaires Unix ; `find` y désigne un
+outil différent (et limité). Beaucoup de tutoriels supposent un
+shell Bash.
+
+SOLUTION
+Utiliser l'équivalent natif PowerShell :
+```powershell
+Get-ChildItem -Recurse -Filter "*.ts"
+```
+
+LECON
+Sur Windows, traduire systématiquement les commandes Bash des
+tutoriels vers leur équivalent PowerShell.
+
+============================================================
 MODELE TIL A COPIER
 ============================================================
 
@@ -1077,9 +1444,3 @@ SOLUTION
 
 LECON
 ------------------------------------------------------------
-
-
-============================================================
-MODELE TIL A COPIER
-============================================================
-...
