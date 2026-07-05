@@ -1426,6 +1426,120 @@ Sur Windows, traduire systématiquement les commandes Bash des
 tutoriels vers leur équivalent PowerShell.
 
 ============================================================
+TIL-058 — Maven -Dtest échoue sous PowerShell (# et +)
+============================================================
+Date        : 2026-06-24
+Projet      : Phoenix Exchange API
+Catégorie   : Maven / PowerShell
+
+PROBLEME
+Impossible de lancer un test ciblé avec
+.\mvnw.cmd test -Dtest=SettlementServiceTest#methodName :
+PowerShell renvoie une erreur ou ignore l'argument.
+
+CAUSE
+PowerShell interprète les caractères # (début de commentaire)
+et + avant de transmettre l'argument à Maven. La partie après
+le # est donc tronquée.
+
+SOLUTION
+Encadrer tout l'argument de guillemets :
+.\mvnw.cmd test "-Dtest=SettlementServiceTest#methodName"
+Idem pour cibler plusieurs méthodes :
+.\mvnw.cmd test "-Dtest=SettlementServiceTest#methodA+methodB"
+
+LECON
+Sous PowerShell, tout argument contenant des caractères
+spéciaux du shell doit être quoté avant d'atteindre l'outil cible.
+
+============================================================
+TIL-059 — Binaire installé mais commande introuvable (PATH Windows)
+============================================================
+Date        : 2026-06-29
+Projet      : Environnement Windows
+Catégorie   : Windows / PowerShell
+
+PROBLEME
+Après installation d'un outil CLI via un script Unix (install.sh
+lancé depuis Git Bash), la commande reste introuvable dans cmd
+et PowerShell alors que le binaire existe bien dans
+C:\Users\<user>\.local\bin.
+
+CAUSE
+Le script d'installation Unix ajoute le dossier au PATH via
+.bashrc, ce qui n'a aucun effet sur cmd.exe ou PowerShell.
+Le PATH Windows n'est jamais mis à jour.
+
+SOLUTION
+Fix temporaire (session courante) :
+$env:PATH += ";$env:USERPROFILE\.local\bin"
+Fix permanent :
+[Environment]::SetEnvironmentVariable("Path",
+  $env:PATH + ";$env:USERPROFILE\.local\bin", "User")
+Puis rouvrir le terminal. Privilégier l'installeur natif Windows
+quand il existe (script PowerShell officiel).
+
+LECON
+Un script d'installation Unix ne configure que les shells Unix.
+Sur Windows, toujours vérifier et corriger le PATH côté système.
+
+============================================================
+TIL-060 — OAuth CLI : redirect_uri manquant (URL tronquée)
+============================================================
+Date        : 2026-06-29
+Projet      : Environnement Windows
+Catégorie   : CLI / OAuth
+
+PROBLEME
+Lors de l'authentification OAuth d'un outil en ligne de commande,
+le navigateur affiche "Requête OAuth invalide : paramètre
+redirect_uri manquant".
+
+CAUSE
+L'URL OAuth affichée dans le terminal était coupée par le retour
+à la ligne automatique. En la copiant manuellement, la fin de
+l'URL (dont le paramètre redirect_uri) était perdue.
+
+SOLUTION
+Maximiser la fenêtre du terminal avant de copier l'URL, ou
+laisser l'outil ouvrir le navigateur automatiquement. Vérifier
+aussi que le bon compte est actif dans le navigateur (une fenêtre
+privée permet de tester avec une session propre).
+
+LECON
+Une URL longue copiée depuis un terminal peut être silencieusement
+tronquée par le line-wrapping. Toujours vérifier l'URL complète.
+
+============================================================
+TIL-061 — Badge GitHub Pull Shark non attribué immédiatement
+============================================================
+Date        : 2026-07-03
+Projet      : GitHub (profil Yan739)
+Catégorie   : GitHub
+
+PROBLEME
+Après deux pull requests mergées, le badge Pull Shark
+n'apparaissait pas sur le profil GitHub.
+
+CAUSE
+Plusieurs facteurs possibles : les achievements sont calculés par
+batch (délai de quelques heures à quelques jours), les PR mergées
+dans des dépôts privés ne comptent que si l'option "Include
+private contributions" est activée, et la PR doit être réellement
+mergée (pas fermée).
+
+SOLUTION
+Vérifier que les PR sont bien au statut "Merged", activer
+l'affichage des contributions privées dans les paramètres du
+profil si les dépôts sont privés, puis patienter le temps du
+traitement par batch.
+
+LECON
+Les mécanismes de gamification des plateformes reposent souvent
+sur des traitements différés : absence immédiate ne veut pas
+dire échec.
+
+============================================================
 MODELE TIL A COPIER
 ============================================================
 
