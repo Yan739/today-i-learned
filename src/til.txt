@@ -1511,33 +1511,173 @@ Une URL longue copiée depuis un terminal peut être silencieusement
 tronquée par le line-wrapping. Toujours vérifier l'URL complète.
 
 ============================================================
-TIL-061 — Badge GitHub Pull Shark non attribué immédiatement
+TIL-062 — Conflit de staged content lors d'un retrait Git
 ============================================================
-Date        : 2026-07-03
-Projet      : GitHub (profil Yan739)
-Catégorie   : GitHub
+Date        : 2026-07-05
+Projet      : ZenBank
+Catégorie   : Git
 
 PROBLEME
-Après deux pull requests mergées, le badge Pull Shark
-n'apparaissait pas sur le profil GitHub.
+La commande `git rm --cached -r zenbank-api` échoue avec l'erreur :
+"error: the following file has staged content different from both
+the file and the HEAD".
 
 CAUSE
-Plusieurs facteurs possibles : les achievements sont calculés par
-batch (délai de quelques heures à quelques jours), les PR mergées
-dans des dépôts privés ne comptent que si l'option "Include
-private contributions" est activée, et la PR doit être réellement
-mergée (pas fermée).
+Le sous-dossier (ou sous-module parasite) contient des modifications 
+indexées (staged) qui diffèrent à la fois de l'état sur le disque 
+et du dernier commit (HEAD). Git bloque l'action pour éviter une 
+perte de données accidentelle.
 
 SOLUTION
-Vérifier que les PR sont bien au statut "Merged", activer
-l'affichage des contributions privées dans les paramètres du
-profil si les dépôts sont privés, puis patienter le temps du
-traitement par batch.
+Forcer la suppression de l'index avec l'option `-f` :
+`git rm -f --cached zenbank-api`
+Puis nettoyer physiquement le dossier caché .git résiduel :
+`Remove-Item -Path .\zenbank-api\.git -Recurse -Force`
 
 LECON
-Les mécanismes de gamification des plateformes reposent souvent
-sur des traitements différés : absence immédiate ne veut pas
-dire échec.
+Quand un fichier ou un dossier est dans un état hybride entre 
+l'index, le HEAD et le disque, l'option `--force` (`-f`) est requise 
+pour débloquer le nettoyage de l'index Git.
+
+============================================================
+TIL-063 — Push refusé sur dépôt distant tout neuf (Non-fast-forward)
+============================================================
+Date        : 2026-07-05
+Projet      : ZenBank
+Catégorie   : Git / GitHub
+
+PROBLEME
+Le premier push vers l'upstream échoue avec un rejet `[rejected] main -> main (fetch first)`. 
+La commande corrective immédiate `git push --force` renvoie une erreur fatale 
+indiquant qu'aucune branche amont n'est configurée.
+
+CAUSE
+Lors de la création du dépôt sur GitHub, des fichiers par défaut (README, 
+.gitignore ou licence) ont été initialisés, créant un historique distant 
+que le projet local ne possède pas. De plus, la branche locale n'était 
+pas encore liée à la branche distante.
+
+SOLUTION
+Associer explicitement la branche amont tout en forçant l'écrasement 
+de l'historique initial de GitHub par le code local valide :
+`git push origin main --force`
+
+LECON
+Lors de l'initialisation d'un dépôt local existant vers un dépôt 
+GitHub pré-rempli, le premier push doit être forcé pour imposer 
+l'historique local comme source de vérité.
+
+============================================================
+TIL-064 — IntelliJ aveugle aux erreurs de syntaxe Java
+============================================================
+Date        : 2026-07-05
+Projet      : ZenBank
+Catégorie   : IntelliJ / Maven
+
+PROBLEME
+L'IDE ne surligne aucune erreur de syntaxe en rouge et se comporte 
+comme un simple éditeur de texte. L'onglet vertical Maven est invisible.
+
+CAUSE
+IntelliJ n'a pas détecté la nature Maven du projet. Il voit le dossier 
+comme un répertoire de fichiers bruts sans framework associé, ce qui 
+désactive l'analyse de code en temps réel (moteur d'inspection).
+
+SOLUTION
+Faire un clic droit sur le fichier `pom.xml` racine et sélectionner 
+l'option "Add as Maven Project". Si besoin, réouvrir le projet en 
+sélectionnant directement le fichier `pom.xml` via "Open as Project".
+
+LECON
+Sans liaison explicite avec le descripteur de build (`pom.xml`), 
+IntelliJ ne peut pas instancier son moteur d'analyse statique du code.
+
+============================================================
+TIL-065 — Échec de configuration de la DataSource au démarrage
+============================================================
+Date        : 2026-07-05
+Projet      : ZenBank API
+Catégorie   : Spring Boot / JPA
+
+PROBLEME
+L'application ou les tests d'intégration (`contextLoads`) crashent 
+au démarrage avec l'erreur : "Failed to configure a DataSource: 'url' 
+attribute is not specified and no embedded datasource could be configured".
+
+CAUSE
+La dépendance `spring-boot-starter-data-jpa` est présente dans le `pom.xml`. 
+Spring Boot tente d'auto-configurer la connexion à la base de données, 
+mais il ne trouve pas les propriétés requises (`spring.datasource.url`) 
+car le fichier `application.properties` est absent, mal placé, ou ignoré 
+dans l'arborescence multi-modules.
+
+SOLUTION
+1. S'assurer que `application.properties` est bien dans `src/main/resources`.
+2. Pour faire passer les builds ou les tests globaux sans exiger de 
+base de données active, exclure l'auto-configuration dans la classe de test :
+`@EnableAutoConfiguration(exclude = {DataSourceAutoConfiguration.class})`
+
+LECON
+Spring Boot applique le principe du "fail-fast" : si JPA est chargé, 
+une configuration de DataSource valide ou une base de données embarquée 
+dans le classpath est obligatoire dès le démarrage.
+
+============================================================
+TIL-066 — Bean manquant pour le port de sortie (Architecture Hexagonale)
+============================================================
+Date        : 2026-07-05
+Projet      : ZenBank API
+Catégorie   : Spring Boot / Architecture
+
+PROBLEME
+Le démarrage de l'application échoue avec une erreur d'injection : 
+"Parameter 0 of method makeTransferUseCase in AccountConfig required 
+a bean of type 'AccountRepositoryPort' that could not be found".
+
+CAUSE
+Le service métier (`TransferService`) est correctement instancié dans 
+la configuration via un `@Bean`, mais il requiert une implémentation 
+du port de sortie (`AccountRepositoryPort`). L'adaptateur d'infrastructure 
+PostgreSQL n'a pas encore été créé ou n'a pas été déclaré auprès de Spring.
+
+SOLUTION
+Créer la classe concrète `AccountJpaAdapter` implémentant l'interface 
+`AccountRepositoryPort` dans le package d'infrastructure et l'annoter 
+avec `@Component` pour que Spring puisse la scanner et l'injecter.
+
+LECON
+En architecture hexagonale, chaque port d'entrée ou de sortie doit 
+impérativement posséder sa contrepartie concrète (adaptateur) déclarée 
+comme composant Spring pour que le câblage de l'application s'opère.
+
+============================================================
+TIL-067 — Erreur 403 Forbidden sur requêtes POST de test
+============================================================
+Date        : 2026-07-05
+Projet      : ZenBank API
+Catégorie   : Spring Security
+
+PROBLEME
+L'appel aux endpoints de l'API (comme `/api/v1/accounts/transfer`) 
+via Swagger UI renvoie systématiquement une erreur `403 Forbidden`.
+
+CAUSE
+La dépendance Spring Security est active. Par défaut, elle sécurise 
+toutes les routes et bloque toutes les requêtes mutables (`POST`, `PUT`, `DELETE`) 
+en l'absence d'un jeton de protection contre les vulnérabilités CSRF.
+
+SOLUTION
+Créer une classe de configuration de sécurité (`SecurityConfig`) pour 
+l'environnement de développement afin de désactiver temporairement le CSRF 
+et d'autoriser l'accès public aux routes de l'API ainsi qu'à Swagger :
+```java
+http.csrf(csrf -> csrf.disable())
+    .authorizeHttpRequests(auth -> auth
+        .requestMatchers("/api/v1/accounts/**").permitAll()
+        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+        .anyRequest().authenticated()
+    );
+
 
 ============================================================
 MODELE TIL A COPIER
