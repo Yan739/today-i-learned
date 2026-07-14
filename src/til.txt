@@ -1,7 +1,7 @@
 ============================================================
 TIL - TODAY I LEARNED
 Auteur      : Yann Ngateu
-Période     : Janvier 2026 - Juin 2026
+Période     : Janvier 2026 - Février 2026
 Objectif    : Capitaliser les problèmes techniques rencontrés
 ============================================================
 
@@ -1032,7 +1032,7 @@ Le cycle de vie de la base de données Room persiste au-delà du simple redémar
 TIL-044 — ContactAdapter : Séparation du modèle de données
 ============================================================
 Date        : 2026-03-08
-Projet      : RememberThDay
+Projet      : RememberthDay
 Catégorie   : Android / Architecture
 
 PROBLEME
@@ -1059,624 +1059,221 @@ framework. L'adapter ne contient plus qu'une seule
 responsabilité : lier les données à la vue (onBindViewHolder).
 
 ============================================================
-TIL-045 — Date antidatée bloquant toute la sauvegarde du contact
+TIL-045 — Prepa CCST : Module 1, la communication dans un monde connecte
 ============================================================
-Date        : 2026-03-23
-Projet      : RememberThDay
-Catégorie   : Android / Logique métier
+Date        : 2026-07-14
+Projet      : Prepa CCST Networking
+Catégorie   : Module 1
+
+AVANCEMENT
+100% - module termine.
+
+ETAT
+Module boucle. Je maitrise les bases de la communication reseau et le vocabulaire de depart.
+
+NOTIONS VUES
+- Types de reseaux selon la taille : domestique, petite entreprise (SOHO), moyen/grand, mondial (Internet).
+- Difference bande passante (capacite max theorique) et debit (ce qui passe reellement).
+- Roles client / serveur / pair a pair : un appareil peut jouer les deux.
+
+A RETENIR
+Le classement des reseaux se fait par la taille et le nombre d'utilisateurs, pas par le materiel.
+
+
+============================================================
+TIL-046 — Prepa CCST : Module 2, composants reseau, types et connexions
+============================================================
+Date        : 2026-07-14
+Projet      : Prepa CCST Networking
+Catégorie   : Module 2
+
+AVANCEMENT
+100% - module termine.
+
+ETAT
+Module boucle. Je sais identifier les equipements et les supports d'un reseau et distinguer LAN et WAN.
+
+NOTIONS VUES
+- Peripheriques finaux (hotes) vs intermediaires (switch, routeur, point d'acces, pare-feu).
+- Types de medias : cuivre (portee limitee), fibre (haut debit, longue distance), sans fil (mobilite).
+- LAN (zone limitee, une organisation) vs WAN (relie des LAN eloignes).
+- Options de connexion a Internet : DSL, cable, fibre, cellulaire, satellite.
+
+A RETENIR
+Les hotes echangent les donnees, les intermediaires les acheminent ; un WAN interconnecte plusieurs LAN.
+
+
+============================================================
+TIL-047 — Prepa CCST : Module 3, reseaux sans fil et mobiles (termine)
+============================================================
+Date        : 2026-07-14
+Projet      : Prepa CCST Networking
+Catégorie   : Module 3
+
+AVANCEMENT
+100% - module termine.
+
+ETAT
+Module boucle. Je sais configurer la connectivite sans fil d'un mobile : Wi-Fi, donnees cellulaires et Bluetooth.
+
+NOTIONS VUES
+- Types de reseaux sans fil selon la portee : WPAN (Bluetooth), WLAN (Wi-Fi), WMAN (ville), WWAN (cellulaire).
+- Wi-Fi : normes IEEE 802.11 (a/b/g/n/ac/ax), bandes 2,4 GHz et 5 GHz, SSID protege en WPA2/WPA3.
+- Wi-Fi vs donnees cellulaires (3G/4G/5G) : le mobile bascule selon la dispo et les reglages, le mode avion coupe tout.
+- Bluetooth : WPAN courte portee, jumelage (pairing) puis connexion automatique ensuite.
+- Configuration mobile : activer et choisir le SSID, gerer les donnees cellulaires (roaming, APN), jumeler en Bluetooth, partager la connexion (hotspot).
+
+PROCHAINE ETAPE
+Attaquer le module 4.
+
+
+============================================================
+TIL-048 — Migration de schema dans localStorage
+============================================================
+Date        : 2026-07-14
+Projet      : TradeHub
+Catégorie   : PWA / localStorage
 
 PROBLEME
-Sélectionner par erreur une date d'envoi dans le passé empêchait
-la sauvegarde de l'INTÉGRALITÉ du contact (nom, téléphone, note,
-message), pas seulement de la programmation.
+Apres avoir change la structure des donnees (ancien tableau checks a 18 cases vers un objet ck.leaps/action/invest), les anciennes sauvegardes cassaient l'app.
 
 CAUSE
-La validation de la date était placée au mauvais endroit dans le
-flux de sauvegarde : le `return` conçu pour interrompre la
-programmation interrompait aussi la persistance du reste du contact.
+localStorage garde l'ancien format tant que l'utilisateur ne vide pas son cache. Le code lisait une forme de donnees qui n'existait plus.
 
 SOLUTION
-Une date invalide déclenche désormais un Toast d'avertissement et
-colore les champs date/heure en rouge semi-transparent (0x33E53935).
-Le flag hasSchedule passe à false, les champs de programmation sont
-vidés, et la sauvegarde du reste du contact se poursuit (message en
-statut CRAFT). Dès qu'une date valide est saisie, les styles par
-défaut sont restaurés.
+A la lecture, detecter l'ancien champ et le convertir :
+if(Array.isArray(p.checks) && p.checks.length===18 && !Array.isArray(store.ck.leaps)) store.ck.leaps=p.checks;
+puis delete store.checks apres migration.
 
 LECON
-La validation d'un champ secondaire ne doit jamais bloquer la
-persistance des données principales. Isoler les règles de validation
-par périmètre de responsabilité.
+Des qu'on persiste des donnees cote client, il faut prevoir une migration de l'ancien schema vers le nouveau.
+
 
 ============================================================
-TIL-046 — Variable finale requise dans une lambda
+TIL-049 — localStorage peut lever une exception
 ============================================================
-Date        : 2026-03-23
-Projet      : RememberThDay
-Catégorie   : Android / Java
+Date        : 2026-07-14
+Projet      : TradeHub
+Catégorie   : PWA / localStorage
 
 PROBLEME
-Erreur de compilation : "Variable used in lambda expression should
-be final or effectively final".
+La sauvegarde plantait silencieusement dans certains contextes (fichier ouvert en file://, navigation privee, quota plein).
 
 CAUSE
-Le bloc de validation réassignait les variables hasSchedule,
-scheduledTime, dateStr et timeStr selon la validité de la date.
-Ces variables étaient ensuite capturées dans la lambda passée à
-databaseWriteExecutor.execute(). En Java, une variable capturée par
-une lambda doit être effectivement finale ; toute réassignation
-postérieure l'en empêche.
+localStorage.setItem n'est pas garanti : il jette une exception si le stockage est indisponible ou sature, il ne se contente pas de retourner false.
 
 SOLUTION
-Introduire quatre variables finales juste avant la lambda
-(finalHasSchedule, finalScheduledTime, finalDateStr, finalTimeStr)
-qui capturent la valeur résultante après validation. Toutes les
-références internes à la lambda utilisent ces copies.
+Encapsuler dans try/catch et prevenir l'utilisateur :
+try{ localStorage.setItem(LS_KEY, JSON.stringify(store)) }
+catch(e){ alert('Sauvegarde locale indisponible dans ce contexte.') }
 
 LECON
-Une lambda Java fige l'état des variables capturées. Si une valeur
-doit changer avant la capture, on la copie dans une variable finale
-locale au dernier moment.
+Tout acces a localStorage doit etre protege, jamais suppose fiable.
+
 
 ============================================================
-TIL-047 — Permission SCHEDULE_EXACT_ALARM refusée (Android 13+)
+TIL-050 — Fusionner l'etat sauvegarde avec les valeurs par defaut
 ============================================================
-Date        : 2026-03-23
-Projet      : RememberThDay
-Catégorie   : Android / AlarmManager
+Date        : 2026-07-14
+Projet      : TradeHub
+Catégorie   : JavaScript / Etat
 
 PROBLEME
-Sur Android 13+ (API 33+), les alarmes programmées via
-setExactAndAllowWhileIdle() étaient soit ignorées silencieusement,
-soit dégradées en planning imprécis (retards de plusieurs minutes),
-sans aucune indication à l'utilisateur.
+Apres l'ajout d'un nouveau champ (watchlist), les anciennes sauvegardes le laissaient undefined et provoquaient des erreurs au rendu.
 
 CAUSE
-Android 13 a introduit une distinction entre alarmes approximatives
-(autorisées par défaut) et alarmes exactes (permission
-SCHEDULE_EXACT_ALARM refusée par défaut, requérant un consentement
-explicite).
+Un JSON.parse rend exactement ce qui a ete stocke : les nouveaux champs absents ne sont pas crees automatiquement.
 
 SOLUTION
-Ajouter deux méthodes à SmsSchedulerHelper :
-- canScheduleExact(context) vérifie la présence de la permission.
-- requestExactAlarmPermission(context) ouvre la page système
-  "Alarmes et rappels" de l'application.
-Si la permission manque au moment d'une programmation, un AlertDialog
-propose d'ouvrir les paramètres ou de continuer avec le fallback
-setAndAllowWhileIdle() (envoi garanti, précision moindre).
+Partir d'un objet par defaut complet puis fusionner :
+store = { ...store, ...JSON.parse(raw) };
+et revalider chaque champ attendu (type, longueur de tableau) avant utilisation.
 
 LECON
-Chaque montée de version Android peut transformer une permission
-implicite en permission explicite. Toujours prévoir un fallback
-gracieux et informer l'utilisateur.
+On fusionne toujours les donnees chargees par-dessus une structure par defaut, jamais l'inverse.
+
 
 ============================================================
-TIL-048 — BroadcastReceiver requiert RECEIVER_EXPORTED (Android 13+)
+TIL-051 — Enregistrer le service worker seulement en contexte securise
 ============================================================
-Date        : 2026-03-24
-Projet      : RememberThDay
-Catégorie   : Android / Broadcast
+Date        : 2026-07-14
+Projet      : TradeHub
+Catégorie   : PWA / Service Worker
 
 PROBLEME
-Crash au registerReceiver() sur Android 13+ : un receiver enregistré
-dynamiquement doit déclarer explicitement s'il est exporté ou non.
+Ouvrir l'app directement depuis le disque (file://) generait une erreur d'enregistrement du service worker.
 
 CAUSE
-À partir d'Android 13 (API 33+), tout receiver enregistré à
-l'exécution et écoutant des broadcasts non-système doit préciser
-le flag RECEIVER_EXPORTED ou RECEIVER_NOT_EXPORTED, sous peine de
-SecurityException.
+L'API service worker n'existe qu'en contexte securise : https, localhost ou 127.0.0.1. Ailleurs navigator.serviceWorker est absent ou l'enregistrement echoue.
 
 SOLUTION
-Passer le flag au registerReceiver :
-```java
-ContextCompat.registerReceiver(context, smsReceiver, filter,
-    ContextCompat.RECEIVER_NOT_EXPORTED);
-```
-Utiliser RECEIVER_NOT_EXPORTED pour un receiver purement interne.
+Conditionner l'enregistrement :
+if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1")) navigator.serviceWorker.register("sw.js");
 
 LECON
-La sécurité des composants Android se durcit à chaque version :
-expliciter la portée des receivers est devenu obligatoire.
+Un service worker ne fonctionne qu'en HTTPS ou en local ; il faut tester le contexte avant de l'enregistrer.
+
 
 ============================================================
-TIL-049 — SMS long tronqué (limite 160 caractères)
+TIL-052 — Cache du service worker fige apres une mise a jour
 ============================================================
-Date        : 2026-03-24
-Projet      : RememberThDay
-Catégorie   : Android / SmsManager
+Date        : 2026-07-14
+Projet      : TradeHub
+Catégorie   : PWA / Service Worker
 
 PROBLEME
-Les messages d'anniversaire dépassant 160 caractères étaient
-tronqués ou non envoyés.
+Apres avoir modifie index.html, les utilisateurs continuaient de voir l'ancienne version de l'app.
 
 CAUSE
-sendTextMessage() est limité à un seul SMS (160 caractères GSM-7).
-Au-delà, le message doit être découpé en plusieurs parties.
+Le service worker sert les fichiers depuis son cache. Tant que le nom du cache ne change pas, l'ancien contenu reste servi.
 
 SOLUTION
-Découper le message avec divideMessage() et l'envoyer via
-sendMultipartTextMessage(), de manière asynchrone :
-```java
-ArrayList<String> parts = smsManager.divideMessage(message);
-smsManager.sendMultipartTextMessage(number, null, parts, null, null);
-```
+Incrementer la constante de version (tradehub-v2, v3, ...) et supprimer les anciens caches a l'activation :
+caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))));
 
 LECON
-Un SMS n'est pas un canal "illimité" : au-delà d'une certaine
-longueur, il faut explicitement gérer le multipart.
+Chaque livraison doit changer la version du cache, sinon la mise a jour n'atteint jamais l'utilisateur.
+
 
 ============================================================
-TIL-050 — Mutation d'un objet partagé dans une liste
+TIL-053 — Strategie network-first avec repli hors ligne
 ============================================================
-Date        : 2026-03-27
-Projet      : RememberThDay
-Catégorie   : Android / Immutabilité
+Date        : 2026-07-14
+Projet      : TradeHub
+Catégorie   : PWA / Service Worker
 
 PROBLEME
-Lors de la mise à jour d'un cadeau dans GiftListActivity, l'ancienne
-valeur "fuyait" et l'UI affichait des états incohérents.
+Il fallait a la fois servir la derniere version quand le reseau est la et rester utilisable hors ligne.
 
 CAUSE
-Le code modifiait directement (mutait) l'objet Gift déjà présent
-dans la liste au lieu d'en créer une copie. Comme la même référence
-était partagée entre la liste affichée et la couche de données, la
-comparaison DiffUtil ne détectait aucun changement.
+Un cache-first sert du contenu perime ; un network-only casse hors ligne. Il faut arbitrer les deux.
 
 SOLUTION
-Créer un nouvel objet Gift (copie immuable) pour chaque mise à jour
-plutôt que de muter l'existant, puis soumettre la nouvelle liste via
-submitList().
+Dans le handler fetch : tenter le reseau, mettre a jour le cache avec la reponse (res.clone()), et sur echec retomber sur le cache, avec index.html comme repli pour la navigation :
+.catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
 
 LECON
-Avec DiffUtil/ListAdapter, muter un objet existant casse la détection
-de différence. Travailler en immutabilité : produire de nouveaux
-objets plutôt que modifier les anciens.
+Network-first + repli cache donne du contenu frais en ligne et une app fonctionnelle hors ligne.
+
 
 ============================================================
-TIL-051 — Pipe Angular 'number' introuvable (NG8004)
+TIL-054 — Chemins relatifs pour un deploiement GitHub Pages en sous-dossier
 ============================================================
-Date        : 2026-05-23
-Projet      : Phoenix Exchange (phoenix-ui)
-Catégorie   : Angular / Standalone Components
+Date        : 2026-07-14
+Projet      : TradeHub
+Catégorie   : PWA / Deploiement
 
 PROBLEME
-Build échoue : "NG8004: No pipe found with name 'number'" sur
-{{ valeur | number:'1.0-0' }} dans plusieurs composants.
+Sur GitHub Pages (URL de type user.github.io/tradehub/), des chemins absolus auraient pointe a la racine du domaine et casse le manifest, les icones et le service worker.
 
 CAUSE
-Dans un composant standalone Angular, les pipes ne sont pas
-disponibles globalement comme dans un NgModule. DecimalPipe doit
-être importé explicitement dans le tableau imports du composant.
+GitHub Pages sert le projet dans un sous-dossier, pas a la racine. Un chemin commencant par / ignore ce prefixe.
 
 SOLUTION
-```typescript
-import { DecimalPipe } from '@angular/common';
-
-@Component({
-  imports: [DecimalPipe, /* ... */],
-})
-```
+Utiliser des chemins relatifs partout : start_url et scope a "./" dans le manifest, assets du cache en "./index.html", "./icon192.png", etc. Garder display "standalone" et des icones "any maskable" pour une vraie installation.
 
 LECON
-Les composants standalone exigent l'import explicite de chaque pipe,
-directive et composant utilisés dans leur template.
-
-============================================================
-TIL-052 — Accès index signature TypeScript (TS4111)
-============================================================
-Date        : 2026-05-23
-Projet      : Phoenix Exchange (phoenix-ui)
-Catégorie   : Angular / TypeScript strict
-
-PROBLEME
-Erreur TS4111 : "Property 'score' comes from an index signature, so
-it must be accessed with ['score']" sur g.controls.score.value.
-
-CAUSE
-En mode strict, une propriété provenant d'une index signature (ici
-les controls d'un FormGroup) ne peut pas être accédée en notation
-pointée ; TypeScript impose la notation crochet pour signaler que la
-clé n'est pas garantie statiquement.
-
-SOLUTION
-```typescript
-// Avant
-const scores = this.itemGroups.map(g => g.controls.score.value);
-// Après
-const scores = this.itemGroups.map(g => g.controls['score'].value);
-```
-
-LECON
-Le mode strict distingue les propriétés déclarées des clés
-dynamiques. La notation crochet documente l'accès à une clé
-non typée statiquement.
-
-============================================================
-TIL-053 — Import inutilisé bloque la propreté du build (NG8113)
-============================================================
-Date        : 2026-05-23
-Projet      : Phoenix Exchange (phoenix-ui)
-Catégorie   : Angular / Lint
-
-PROBLEME
-Warning NG8113 : "RouterLink is not used within the template of
-DepositComponent".
-
-CAUSE
-RouterLink était déclaré dans le tableau imports du composant
-standalone mais n'était jamais utilisé dans le template.
-
-SOLUTION
-Retirer RouterLink des imports du composant. Le warning ne bloque
-pas le build mais signale du code mort à nettoyer.
-
-LECON
-Garder les imports d'un composant standalone strictement alignés sur
-ce que le template utilise réellement : moins de bruit, bundle plus
-propre.
-
-============================================================
-TIL-054 — Classe Application Spring Boot introuvable
-============================================================
-Date        : 2026-04-15
-Projet      : Phoenix Exchange API
-Catégorie   : Spring Boot / Structure projet
-
-PROBLEME
-Erreur au démarrage : la classe principale (ExchangeApplication)
-n'est pas trouvée.
-
-CAUSE
-Décalage entre le package déclaré dans la classe annotée
-@SpringBootApplication et l'emplacement physique du fichier dans
-l'arborescence des dossiers ; Spring ne scanne que le package de la
-classe principale et ses sous-packages.
-
-SOLUTION
-Vérifier que la classe @SpringBootApplication est bien à la racine
-du package de base, et que tous les composants (controllers,
-services, entities) se trouvent dans des sous-packages de celui-ci.
-Aligner la déclaration package sur le chemin réel des dossiers.
-
-LECON
-Spring Boot s'appuie sur le component scanning depuis le package de
-la classe principale : la cohérence package/dossier est structurante.
-
-============================================================
-TIL-055 — Cache compilateur Angular corrompu (TS2305 fantôme)
-============================================================
-Date        : 2026-05-18
-Projet      : employee_app
-Catégorie   : Angular / Build
-
-PROBLEME
-Erreur TS2305 : "Module './models/level.model' has no exported
-member 'Level'" alors que l'export existe bel et bien et que le
-chemin est correct.
-
-CAUSE
-Le dossier de cache du compilateur Angular (.angular) était
-corrompu et servait une version périmée du fichier. Complication
-annexe : PowerShell (Get-Content) et VS Code affichaient des
-contenus différents (cache éditeur).
-
-SOLUTION
-Vider le cache puis relancer :
-```powershell
-Remove-Item -Recurse -Force .angular
-ng serve
-```
-
-LECON
-Devant une erreur Angular qui contredit le code réel, suspecter le
-cache .angular avant de douter du code. C'est devenu le réflexe de
-debug récurrent sur ce projet.
-
-============================================================
-TIL-056 — Classe Angular exportée en minuscule
-============================================================
-Date        : 2026-05-18
-Projet      : employee_app
-Catégorie   : Angular / Conventions
-
-PROBLEME
-L'import de EmployeeComponent dans app.ts échouait : membre
-introuvable.
-
-CAUSE
-La classe exportée dans employee.ts était nommée `employee`
-(minuscule) au lieu de `EmployeeComponent`, ne correspondant pas au
-nom importé.
-
-SOLUTION
-Renommer la classe en EmployeeComponent (PascalCase) et corriger
-l'import dans app.ts.
-
-LECON
-Respecter strictement les conventions de nommage Angular
-(PascalCase pour les classes/composants) évite les erreurs d'import
-silencieuses.
-
-============================================================
-TIL-057 — Commandes Unix indisponibles sous PowerShell
-============================================================
-Date        : 2026-05-18
-Projet      : Tous (environnement Windows)
-Catégorie   : DevOps / Windows
-
-PROBLEME
-La commande `find` (recherche de fichiers façon Unix) ne fonctionne
-pas sous PowerShell Windows.
-
-CAUSE
-PowerShell n'expose pas les utilitaires Unix ; `find` y désigne un
-outil différent (et limité). Beaucoup de tutoriels supposent un
-shell Bash.
-
-SOLUTION
-Utiliser l'équivalent natif PowerShell :
-```powershell
-Get-ChildItem -Recurse -Filter "*.ts"
-```
-
-LECON
-Sur Windows, traduire systématiquement les commandes Bash des
-tutoriels vers leur équivalent PowerShell.
-
-============================================================
-TIL-058 — Maven -Dtest échoue sous PowerShell (# et +)
-============================================================
-Date        : 2026-06-24
-Projet      : Phoenix Exchange API
-Catégorie   : Maven / PowerShell
-
-PROBLEME
-Impossible de lancer un test ciblé avec
-.\mvnw.cmd test -Dtest=SettlementServiceTest#methodName :
-PowerShell renvoie une erreur ou ignore l'argument.
-
-CAUSE
-PowerShell interprète les caractères # (début de commentaire)
-et + avant de transmettre l'argument à Maven. La partie après
-le # est donc tronquée.
-
-SOLUTION
-Encadrer tout l'argument de guillemets :
-.\mvnw.cmd test "-Dtest=SettlementServiceTest#methodName"
-Idem pour cibler plusieurs méthodes :
-.\mvnw.cmd test "-Dtest=SettlementServiceTest#methodA+methodB"
-
-LECON
-Sous PowerShell, tout argument contenant des caractères
-spéciaux du shell doit être quoté avant d'atteindre l'outil cible.
-
-============================================================
-TIL-059 — Binaire installé mais commande introuvable (PATH Windows)
-============================================================
-Date        : 2026-06-29
-Projet      : Environnement Windows
-Catégorie   : Windows / PowerShell
-
-PROBLEME
-Après installation d'un outil CLI via un script Unix (install.sh
-lancé depuis Git Bash), la commande reste introuvable dans cmd
-et PowerShell alors que le binaire existe bien dans
-C:\Users\<user>\.local\bin.
-
-CAUSE
-Le script d'installation Unix ajoute le dossier au PATH via
-.bashrc, ce qui n'a aucun effet sur cmd.exe ou PowerShell.
-Le PATH Windows n'est jamais mis à jour.
-
-SOLUTION
-Fix temporaire (session courante) :
-$env:PATH += ";$env:USERPROFILE\.local\bin"
-Fix permanent :
-[Environment]::SetEnvironmentVariable("Path",
-  $env:PATH + ";$env:USERPROFILE\.local\bin", "User")
-Puis rouvrir le terminal. Privilégier l'installeur natif Windows
-quand il existe (script PowerShell officiel).
-
-LECON
-Un script d'installation Unix ne configure que les shells Unix.
-Sur Windows, toujours vérifier et corriger le PATH côté système.
-
-============================================================
-TIL-060 — OAuth CLI : redirect_uri manquant (URL tronquée)
-============================================================
-Date        : 2026-06-29
-Projet      : Environnement Windows
-Catégorie   : CLI / OAuth
-
-PROBLEME
-Lors de l'authentification OAuth d'un outil en ligne de commande,
-le navigateur affiche "Requête OAuth invalide : paramètre
-redirect_uri manquant".
-
-CAUSE
-L'URL OAuth affichée dans le terminal était coupée par le retour
-à la ligne automatique. En la copiant manuellement, la fin de
-l'URL (dont le paramètre redirect_uri) était perdue.
-
-SOLUTION
-Maximiser la fenêtre du terminal avant de copier l'URL, ou
-laisser l'outil ouvrir le navigateur automatiquement. Vérifier
-aussi que le bon compte est actif dans le navigateur (une fenêtre
-privée permet de tester avec une session propre).
-
-LECON
-Une URL longue copiée depuis un terminal peut être silencieusement
-tronquée par le line-wrapping. Toujours vérifier l'URL complète.
-
-============================================================
-TIL-062 — Conflit de staged content lors d'un retrait Git
-============================================================
-Date        : 2026-07-05
-Projet      : ZenBank
-Catégorie   : Git
-
-PROBLEME
-La commande `git rm --cached -r zenbank-api` échoue avec l'erreur :
-"error: the following file has staged content different from both
-the file and the HEAD".
-
-CAUSE
-Le sous-dossier (ou sous-module parasite) contient des modifications 
-indexées (staged) qui diffèrent à la fois de l'état sur le disque 
-et du dernier commit (HEAD). Git bloque l'action pour éviter une 
-perte de données accidentelle.
-
-SOLUTION
-Forcer la suppression de l'index avec l'option `-f` :
-`git rm -f --cached zenbank-api`
-Puis nettoyer physiquement le dossier caché .git résiduel :
-`Remove-Item -Path .\zenbank-api\.git -Recurse -Force`
-
-LECON
-Quand un fichier ou un dossier est dans un état hybride entre 
-l'index, le HEAD et le disque, l'option `--force` (`-f`) est requise 
-pour débloquer le nettoyage de l'index Git.
-
-============================================================
-TIL-063 — Push refusé sur dépôt distant tout neuf (Non-fast-forward)
-============================================================
-Date        : 2026-07-05
-Projet      : ZenBank
-Catégorie   : Git / GitHub
-
-PROBLEME
-Le premier push vers l'upstream échoue avec un rejet `[rejected] main -> main (fetch first)`. 
-La commande corrective immédiate `git push --force` renvoie une erreur fatale 
-indiquant qu'aucune branche amont n'est configurée.
-
-CAUSE
-Lors de la création du dépôt sur GitHub, des fichiers par défaut (README, 
-.gitignore ou licence) ont été initialisés, créant un historique distant 
-que le projet local ne possède pas. De plus, la branche locale n'était 
-pas encore liée à la branche distante.
-
-SOLUTION
-Associer explicitement la branche amont tout en forçant l'écrasement 
-de l'historique initial de GitHub par le code local valide :
-`git push origin main --force`
-
-LECON
-Lors de l'initialisation d'un dépôt local existant vers un dépôt 
-GitHub pré-rempli, le premier push doit être forcé pour imposer 
-l'historique local comme source de vérité.
-
-============================================================
-TIL-064 — IntelliJ aveugle aux erreurs de syntaxe Java
-============================================================
-Date        : 2026-07-05
-Projet      : ZenBank
-Catégorie   : IntelliJ / Maven
-
-PROBLEME
-L'IDE ne surligne aucune erreur de syntaxe en rouge et se comporte 
-comme un simple éditeur de texte. L'onglet vertical Maven est invisible.
-
-CAUSE
-IntelliJ n'a pas détecté la nature Maven du projet. Il voit le dossier 
-comme un répertoire de fichiers bruts sans framework associé, ce qui 
-désactive l'analyse de code en temps réel (moteur d'inspection).
-
-SOLUTION
-Faire un clic droit sur le fichier `pom.xml` racine et sélectionner 
-l'option "Add as Maven Project". Si besoin, réouvrir le projet en 
-sélectionnant directement le fichier `pom.xml` via "Open as Project".
-
-LECON
-Sans liaison explicite avec le descripteur de build (`pom.xml`), 
-IntelliJ ne peut pas instancier son moteur d'analyse statique du code.
-
-============================================================
-TIL-065 — Échec de configuration de la DataSource au démarrage
-============================================================
-Date        : 2026-07-05
-Projet      : ZenBank API
-Catégorie   : Spring Boot / JPA
-
-PROBLEME
-L'application ou les tests d'intégration (`contextLoads`) crashent 
-au démarrage avec l'erreur : "Failed to configure a DataSource: 'url' 
-attribute is not specified and no embedded datasource could be configured".
-
-CAUSE
-La dépendance `spring-boot-starter-data-jpa` est présente dans le `pom.xml`. 
-Spring Boot tente d'auto-configurer la connexion à la base de données, 
-mais il ne trouve pas les propriétés requises (`spring.datasource.url`) 
-car le fichier `application.properties` est absent, mal placé, ou ignoré 
-dans l'arborescence multi-modules.
-
-SOLUTION
-1. S'assurer que `application.properties` est bien dans `src/main/resources`.
-2. Pour faire passer les builds ou les tests globaux sans exiger de 
-base de données active, exclure l'auto-configuration dans la classe de test :
-`@EnableAutoConfiguration(exclude = {DataSourceAutoConfiguration.class})`
-
-LECON
-Spring Boot applique le principe du "fail-fast" : si JPA est chargé, 
-une configuration de DataSource valide ou une base de données embarquée 
-dans le classpath est obligatoire dès le démarrage.
-
-============================================================
-TIL-066 — Bean manquant pour le port de sortie (Architecture Hexagonale)
-============================================================
-Date        : 2026-07-05
-Projet      : ZenBank API
-Catégorie   : Spring Boot / Architecture
-
-PROBLEME
-Le démarrage de l'application échoue avec une erreur d'injection : 
-"Parameter 0 of method makeTransferUseCase in AccountConfig required 
-a bean of type 'AccountRepositoryPort' that could not be found".
-
-CAUSE
-Le service métier (`TransferService`) est correctement instancié dans 
-la configuration via un `@Bean`, mais il requiert une implémentation 
-du port de sortie (`AccountRepositoryPort`). L'adaptateur d'infrastructure 
-PostgreSQL n'a pas encore été créé ou n'a pas été déclaré auprès de Spring.
-
-SOLUTION
-Créer la classe concrète `AccountJpaAdapter` implémentant l'interface 
-`AccountRepositoryPort` dans le package d'infrastructure et l'annoter 
-avec `@Component` pour que Spring puisse la scanner et l'injecter.
-
-LECON
-En architecture hexagonale, chaque port d'entrée ou de sortie doit 
-impérativement posséder sa contrepartie concrète (adaptateur) déclarée 
-comme composant Spring pour que le câblage de l'application s'opère.
-
-============================================================
-TIL-067 — Erreur 403 Forbidden sur requêtes POST de test
-============================================================
-Date        : 2026-07-05
-Projet      : ZenBank API
-Catégorie   : Spring Security
-
-PROBLEME
-L'appel aux endpoints de l'API (comme `/api/v1/accounts/transfer`) 
-via Swagger UI renvoie systématiquement une erreur `403 Forbidden`.
-
-CAUSE
-La dépendance Spring Security est active. Par défaut, elle sécurise 
-toutes les routes et bloque toutes les requêtes mutables (`POST`, `PUT`, `DELETE`) 
-en l'absence d'un jeton de protection contre les vulnérabilités CSRF.
-
-SOLUTION
-Créer une classe de configuration de sécurité (`SecurityConfig`) pour 
-l'environnement de développement afin de désactiver temporairement le CSRF 
-et d'autoriser l'accès public aux routes de l'API ainsi qu'à Swagger :
-```java
-http.csrf(csrf -> csrf.disable())
-    .authorizeHttpRequests(auth -> auth
-        .requestMatchers("/api/v1/accounts/**").permitAll()
-        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
-        .anyRequest().authenticated()
-    );
+Une PWA hebergee dans un sous-chemin doit tout referencer en relatif, sinon rien ne charge en production.
 
 
 ============================================================
@@ -1697,4 +1294,35 @@ CAUSE
 SOLUTION
 
 LECON
+------------------------------------------------------------
+
+
+============================================================
+MODELE TIL A COPIER
+============================================================
+...
+============================================================
+MODELE ETAT PREPA A COPIER
+============================================================
+
+------------------------------------------------------------
+TIL-XXX — Prepa  : Module N, titre du module (en cours / termine)
+------------------------------------------------------------
+Date        :
+Projet      : Prepa 
+Catégorie   : Module N
+
+AVANCEMENT
+(ex : 45% - sections vues, ce qu'il reste / 100% - module termine)
+
+ETAT
+(ce que je fais actuellement, ou ce que je maitrise si termine)
+
+NOTIONS VUES
+-
+-
+-
+
+PROCHAINE ETAPE
+(la suite : finir une section, recapitulatif, module suivant)
 ------------------------------------------------------------
