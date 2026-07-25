@@ -1275,6 +1275,82 @@ Utiliser des chemins relatifs partout : start_url et scope a "./" dans le manife
 LECON
 Une PWA hebergee dans un sous-chemin doit tout referencer en relatif, sinon rien ne charge en production.
 
+============================================================
+TIL-055 — Downgrade Spring Boot 4 vers 3.5 pour compatibilite ecosysteme
+============================================================
+Date        : 2026-07-21
+Projet      : Scriptum
+Categorie   : Backend / Spring Boot
+
+PROBLEME
+Spring Initializr avait genere le projet en Spring Boot 4.1.0 par defaut, sans que ce soit remarque. Springdoc-openapi (Swagger) plantait au demarrage avec une NoClassDefFoundError sur WebMvcProperties.
+
+CAUSE
+Boot 4 restructure des packages internes (Spring Framework 7, Hibernate 7, Jackson 3). Les librairies tierces comme springdoc 2.8.x ne sont pas encore compatibles avec cette nouvelle structure.
+
+SOLUTION
+Retour au parent spring-boot-starter-parent en 3.5.13. Remplacement de spring-boot-starter-webmvc par spring-boot-starter-web, et des artefacts de test specifiques par starter (data-jpa-test, security-test, etc., propres a Boot 4) par le seul spring-boot-starter-test existant en Boot 3.
+
+LECON
+Toujours verifier la version reelle du parent apres un scaffolding Spring Initializr, surtout sur un projet recent : la version par defaut proposee n'est pas toujours la plus stable pour l'ecosysteme de librairies tierces.
+
+============================================================
+TIL-056 — CORS bloque silencieusement les appels Angular vers Spring Boot
+============================================================
+Date        : 2026-07-25
+Projet      : Scriptum
+Categorie   : Backend / Securite
+
+PROBLEME
+Les appels HTTP depuis Angular (localhost:4200) vers le backend Spring Boot (localhost:8080) echouaient avec une erreur CORS sur le preflight OPTIONS, alors que les memes endpoints fonctionnaient parfaitement depuis Swagger UI.
+
+CAUSE
+Swagger UI est servi par le meme serveur (meme origine), donc jamais concerne par CORS. Spring Security, une fois une SecurityFilterChain personnalisee definie, n'ajoute aucune configuration CORS par defaut.
+
+SOLUTION
+Ajout explicite de .cors(cors -> cors.configurationSource(...)) dans la chaine de filtres, avec un bean CorsConfigurationSource autorisant l'origine http://localhost:4200, credentials inclus.
+
+LECON
+Un frontend et un backend sur des ports differents sont toujours consideres comme des origines differentes par le navigateur. Tester une API uniquement via Swagger ne suffit jamais a valider l'integration frontend.
+
+============================================================
+TIL-057 — sockjs-client incompatible avec un bundler moderne sans polyfill Node
+============================================================
+Date        : 2026-07-24
+Projet      : Scriptum
+Categorie   : Frontend / WebSocket
+
+PROBLEME
+ReferenceError: global is not defined au chargement de l'app Angular, provenant de sockjs-client.
+
+CAUSE
+sockjs-client a ete concu a l'origine pour Node.js et reference la variable globale global, absente nativement des navigateurs. Les imports ES modules etant hoistes, un polyfill ajoute en tete de fichier s'execute trop tard pour empecher le crash au chargement du module.
+
+SOLUTION
+Suppression complete de sockjs-client et .withSockJS() cote backend. Passage a un WebSocket natif via brokerURL (au lieu de webSocketFactory) dans la configuration du client STOMP, avec l'URL convertie en ws:// plutot que http://.
+
+LECON
+Face a une erreur de polyfill manquant sur une librairie tierce ancienne, verifier d'abord s'il existe une alternative moderne native avant de complexifier la configuration du bundler.
+
+============================================================
+TIL-058 — Fichiers de composants Angular vides sans erreur de compilation
+============================================================
+Date        : 2026-07-25
+Projet      : Scriptum
+Categorie   : Frontend / Angular
+
+PROBLEME
+Le bouton d'upload et le panneau de resultat ne reagissaient a aucune interaction, sans la moindre erreur dans la console ni dans le terminal de build.
+
+CAUSE
+Les fichiers .component.ts et .component.html de plusieurs composants s'etaient retrouves vides suite a des copier-coller successifs entre composants generes au meme moment. Un template vide compile sans erreur : Angular affiche simplement un composant qui ne fait rien.
+
+SOLUTION
+Verification systematique du contenu reel des fichiers generes juste apres ng generate component, plutot que de supposer que le contenu colle a chaque etape s'est bien applique au bon fichier.
+
+LECON
+L'absence d'erreur de compilation ne garantit pas qu'un composant fonctionne. Un comportement silencieux (bouton qui ne fait rien, zone qui reste vide) doit toujours faire verifier le contenu reel des fichiers avant de chercher une cause plus complexe.
+
 
 ============================================================
 MODELE TIL A COPIER
