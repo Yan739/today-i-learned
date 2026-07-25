@@ -1,7 +1,6 @@
 ============================================================
 TIL - TODAY I LEARNED
 Auteur      : Yann Ngateu
-Période     : Janvier 2026 - Février 2026
 Objectif    : Capitaliser les problèmes techniques rencontrés
 ============================================================
 
