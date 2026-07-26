@@ -1351,6 +1351,196 @@ Verification systematique du contenu reel des fichiers generes juste apres ng ge
 LECON
 L'absence d'erreur de compilation ne garantit pas qu'un composant fonctionne. Un comportement silencieux (bouton qui ne fait rien, zone qui reste vide) doit toujours faire verifier le contenu reel des fichiers avant de chercher une cause plus complexe.
 
+============================================================
+TIL-059 — ffmpeg qui timeout a cause d'un deadlock sur ProcessBuilder
+============================================================
+Date        : 2026-07-25
+Projet      : Scriptum
+Categorie   : Backend / Process Java
+
+PROBLEME
+L'extraction audio via FfmpegService timeoutait systematiquement au bout de 5 minutes, alors que ffmpeg -version fonctionnait parfaitement en ligne de commande.
+
+CAUSE
+redirectErrorStream(true) fusionne stdout et stderr, mais le code ne lisait ce flux qu'apres waitFor(). ffmpeg ecrit un tres gros volume de logs de progression sur sa sortie. Le tampon systeme (pipe OS, environ 64 Ko) se remplit, ffmpeg se bloque en attente qu'on le lise, et Java attend de son cote la fin du processus avant de lire. Deadlock mutuel.
+
+SOLUTION
+Lancer un thread dedie qui consomme le flux de sortie en continu pendant l'execution du processus, avant meme d'appeler waitFor(), plutot que de lire seulement a la fin.
+
+LECON
+ProcessBuilder avec une sortie volumineuse impose toujours un lecteur de flux concurrent. Une commande courte (comme -version) peut fonctionner alors qu'une commande reelle bloque silencieusement pour cette raison.
+
+============================================================
+TIL-060 — Self-invocation Spring : @Async silencieusement ignore
+============================================================
+Date        : 2026-07-25
+Projet      : Scriptum
+Categorie   : Backend / Spring
+
+PROBLEME
+POST /api/jobs restait bloque plusieurs minutes avant de repondre, alors que processJob() etait bien annotee @Async.
+
+CAUSE
+startJob() appelait this.processJob(...) depuis l'interieur de la meme classe. Spring implemente @Async via un proxy genere autour du bean ; un appel interne (this.methode()) contourne completement ce proxy, l'execution redevient synchrone sans aucune erreur ni avertissement visible.
+
+SOLUTION
+Extraction de processJob() dans un service distinct (JobProcessingService), appele depuis JobOrchestratorService. L'appel devient externe entre deux beans, le proxy @Async s'applique enfin normalement.
+
+LECON
+@Async, @Transactional, @Cacheable et tous les mecanismes bases sur les proxies Spring AOP ne fonctionnent jamais en self-invocation. Reflexe a verifier systematiquement des qu'un comportement annote semble ignore : est-ce un appel this.methode() ou un appel vers un autre bean ?
+
+============================================================
+TIL-061 — @Transactional + @Async : race condition classique
+============================================================
+Date        : 2026-07-25
+Projet      : Scriptum
+Categorie   : Backend / Spring / Concurrence
+
+PROBLEME
+Apres correction du TIL-060, nouvelle erreur : IllegalStateException Job introuvable, levee dans le thread asynchrone alors que le job venait d'etre sauvegarde juste avant dans le meme appel.
+
+CAUSE
+startJob() etait annotee @Transactional. La transaction ne commit qu'a la toute fin de la methode. Le thread @Async demarre immediatement dans un thread separe et va chercher le job en base avant que la transaction principale ait fini de committer les donnees.
+
+SOLUTION
+Retrait de @Transactional sur startJob(). Un simple jobRepository.save() gere deja sa propre transaction courte, auto-committee immediatement, sans avoir besoin d'une transaction englobante ici.
+
+LECON
+Combiner @Transactional et @Async sur le meme chemin d'execution est une source classique de race condition. Une methode qui declenche un traitement asynchrone ne doit jamais retenir sa transaction plus longtemps que necessaire.
+
+============================================================
+TIL-062 — Depot Git imbrique detecte comme sous-module fantome
+============================================================
+Date        : 2026-07-21
+Projet      : Scriptum
+Categorie   : Git
+
+PROBLEME
+Sur GitHub, le dossier scriptum-api apparaissait avec une fleche au lieu de s'ouvrir normalement, comme un sous-module classique.
+
+CAUSE
+scriptum-api possedait son propre dossier .git interne, probablement cree automatiquement par IntelliJ lors du scaffolding initial du module, sans que ce soit remarque. Git parent traite alors ce dossier comme un depot imbrique (sous-module) plutot que comme des fichiers normaux.
+
+SOLUTION
+Suppression du .git imbrique (Remove-Item -Recurse -Force scriptum-api\.git), retrait de la reference de sous-module (git rm --cached scriptum-api), puis reintegration normale (git add scriptum-api).
+
+LECON
+Apres avoir genere un projet dans un sous-dossier d'un monorepo, toujours verifier la presence d'un .git imbrique avant le tout premier commit. L'IDE peut initialiser Git sans qu'on le demande explicitement.
+
+============================================================
+TIL-063 — Fuite de cle API via .idea/workspace.xml
+============================================================
+Date        : 2026-07-21
+Projet      : Scriptum
+Categorie   : Git / Securite
+
+PROBLEME
+git push rejete par GitHub Push Protection : une cle API Groq detectee dans l'historique des commits.
+
+CAUSE
+La cle avait ete saisie dans une configuration d'execution IntelliJ (variables d'environnement du Run Configuration), stockee en clair dans .idea/workspace.xml. Ce fichier n'etait pas dans le .gitignore des le depart, donc Git l'a suivi et commit avec la cle dedans.
+
+SOLUTION
+Revocation immediate de la cle fuitee (jamais la reutiliser meme apres nettoyage). Ajout de .idea/ au .gitignore. Reconstruction complete de l'historique Git (.git supprime puis reinitialise), la cle etant deja presente dans plusieurs commits anterieurs, un simple amend ne suffisait pas.
+
+LECON
+.idea/ doit etre dans le .gitignore avant le tout premier commit, jamais ajoute apres coup. Les secrets places dans les Run Configurations IntelliJ ne sont pas plus surs que du hardcoding si ce dossier de config est suivi par Git. Un fichier .env centralise, independant de l'IDE, reste plus sur.
+
+============================================================
+TIL-064 — MyMemory renvoie une traduction null sans erreur HTTP
+============================================================
+Date        : 2026-07-25
+Projet      : Scriptum
+Categorie   : Backend / API externe
+
+PROBLEME
+L'appel de traduction repondait 200 OK, mais translatedText valait null, affiche cote frontend comme le texte litteral "null" concatene au reste.
+
+CAUSE
+Whisper (via Groq) renvoie la langue detectee comme un nom complet ("french"), pas un code ISO ("fr"). MyMemory attend un vrai code ISO 639-1 dans son parametre langpair ; avec "french|en", l'API ne reconnait pas la langue et renvoie silencieusement un responseData.translatedText a null, sans lever d'erreur HTTP.
+
+SOLUTION
+Ajout d'une table de conversion nom Whisper vers code ISO avant l'appel MyMemory. Retour du texte original (au lieu de null) si la reponse est invalide, pour eviter la concatenation d'un "null" litteral dans le resultat final.
+
+LECON
+Un code 200 OK ne garantit pas un contenu exploitable. Toujours logger la reponse brute d'une API tierce avant de suspecter un bug de parsing cote client ; ici le vrai probleme etait une incompatibilite de format de donnees entre deux services, pas une erreur de code.
+
+============================================================
+TIL-065 — Groq ne renvoie la langue detectee qu'en format verbose
+============================================================
+Date        : 2026-07-25
+Projet      : Scriptum
+Categorie   : Backend / API externe
+
+PROBLEME
+sourceLanguage restait toujours null en base de donnees, alors que la transcription elle-meme fonctionnait parfaitement.
+
+CAUSE
+L'API Groq ne renvoie le champ language que si response_format=verbose_json est explicitement demande dans la requete multipart. Par defaut, elle ne renvoie que le champ text.
+
+SOLUTION
+Ajout de builder.part("response_format", "verbose_json") dans l'appel WebClient vers Groq.
+
+LECON
+Ne jamais supposer qu'une API renvoie toutes les metadonnees disponibles par defaut. Toujours verifier la documentation pour les champs optionnels (langue, timestamps, score de confiance) qui necessitent souvent un parametre explicite en plus du resultat principal attendu.
+
+============================================================
+TIL-066 — Mot de passe genere par Spring Security malgre une SecurityConfig personnalisee
+============================================================
+Date        : 2026-07-22
+Projet      : Scriptum
+Categorie   : Backend / Spring Security
+
+PROBLEME
+Le message Using generated security password apparaissait au demarrage et un login/mot de passe etaient exiges sur tous les endpoints, alors qu'une SecurityFilterChain personnalisee etait deja definie.
+
+CAUSE
+La generation du mot de passe par defaut (UserDetailsServiceAutoConfiguration) est un mecanisme independant de la SecurityFilterChain. Elle se declenche des qu'aucun bean UserDetailsService n'est present dans le contexte, peu importe la config de filtres deja ecrite.
+
+SOLUTION
+Exclusion explicite de UserDetailsServiceAutoConfiguration dans @SpringBootApplication en attendant l'implementation du vrai systeme d'authentification JWT (User, UserDetailsServiceImpl), qui a ensuite pris le relai naturellement.
+
+LECON
+Une SecurityFilterChain personnalisee ne suffit pas a elle seule a desactiver tous les comportements par defaut de Spring Security. Certaines auto-configurations (comme la generation d'utilisateur par defaut) doivent etre exclues explicitement tant qu'aucun UserDetailsService reel n'existe.
+
+============================================================
+TIL-067 — Swagger n'affiche pas le cadenas d'authentification sans schema declare
+============================================================
+Date        : 2026-07-24
+Projet      : Scriptum
+Categorie   : Backend / Documentation API
+
+PROBLEME
+Impossible de tester les endpoints proteges par JWT depuis Swagger UI : aucun bouton Authorize (cadenas) n'apparaissait dans l'interface.
+
+CAUSE
+Springdoc ne fait apparaitre le bouton Authorize que si un schema de securite est explicitement declare dans la configuration OpenAPI. Une SecurityConfig Spring valide ne suffit pas, Swagger n'a aucune connaissance automatique du mecanisme d'authentification utilise par l'API.
+
+SOLUTION
+Ajout d'un bean SecurityScheme de type HTTP bearer avec bearerFormat JWT dans OpenApiConfig, associe via addSecurityItem. Le bouton Authorize est alors apparu, acceptant un token colle sans le prefixe Bearer (ajoute automatiquement par Swagger une fois le schema declare).
+
+LECON
+La documentation OpenAPI d'une API securisee doit declarer explicitement son schema d'authentification ; sans ca, Swagger UI reste utilisable uniquement pour les routes publiques, sans moyen visible de s'authentifier pour les autres.
+
+============================================================
+TIL-068 — Quota gratuit MyMemory epuise en pleine session de tests
+============================================================
+Date        : 2026-07-25
+Projet      : Scriptum
+Categorie   : Backend / API externe
+
+PROBLEME
+Un job de transcription complet echouait en FAILED a l'etape de traduction, avec une erreur 429 Too Many Requests provenant de l'API MyMemory, alors que la transcription elle-meme avait parfaitement reussi.
+
+CAUSE
+Le plan gratuit de MyMemory est limite a 5000 caracteres par jour sans email associe a la requete, une limite tres vite atteinte apres plusieurs tests successifs de traduction dans la meme journee. Le code ne geerait pas ce cas et laissait l'exception remonter, faisant echouer tout le job pour un probleme qui ne concernait que l'etape optionnelle de traduction.
+
+SOLUTION
+Encapsulation de l'appel MyMemory dans un bloc try/catch qui retourne le texte original en cas d'echec (quota, erreur reseau, reponse invalide), au lieu de laisser planter tout le pipeline pour une fonctionnalite annexe.
+
+LECON
+Un service externe optionnel (ici la traduction) ne doit jamais pouvoir faire echouer une fonctionnalite principale (ici la transcription) deja aboutie. Prevoir un degrade gracieux plutot qu'un echec total des qu'une dependance secondaire est indisponible ou limitee.
+
 
 ============================================================
 MODELE TIL A COPIER
